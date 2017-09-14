@@ -1,17 +1,14 @@
 package com.chiemy.piano;
 
-import android.animation.ObjectAnimator;
 import android.content.Context;
-import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.AttributeSet;
+import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.OvershootInterpolator;
-import android.widget.FrameLayout;
 
 
 /**
@@ -23,10 +20,15 @@ import android.widget.FrameLayout;
 public class PianoView extends RecyclerView {
     private LinearLayoutManager layoutManager;
     private int itemSpacing;
-    private float showMiniPercent = 0.2f;
-    private float translatePercent = 1 - showMiniPercent;
-    private int offsetCount = 3;
+    float showMiniPercent = 0.2f;
+    float translatePercent = 1 - showMiniPercent;
+    int offsetCount = 5;
     private ScrollRunnable scrollRunnable = new ScrollRunnable();
+    OnItemSelectedListener listener;
+
+    private TouchEventHelper touchEventHelper;
+
+    private int gravity = Gravity.BOTTOM;
 
     public PianoView(Context context) {
         this(context, null);
@@ -42,8 +44,6 @@ public class PianoView extends RecyclerView {
     }
 
     public void init() {
-        super.setLayoutManager(
-                layoutManager = new LinearLayoutManager(getContext(), HORIZONTAL, false));
         addOnItemTouchListener(new OnItemTouchListener() {
             @Override
             public boolean onInterceptTouchEvent(RecyclerView rv, MotionEvent e) {
@@ -61,13 +61,53 @@ public class PianoView extends RecyclerView {
         });
     }
 
+    public void setGravity(int gravity) {
+        this.gravity = gravity;
+        switch (gravity) {
+            case Gravity.TOP:
+                layoutManager = new LinearLayoutManager(getContext(), HORIZONTAL, false);
+                touchEventHelper = new HorizontalTouchEventHelper(this);
+                break;
+            case Gravity.BOTTOM:
+                layoutManager = new LinearLayoutManager(getContext(), HORIZONTAL, false);
+                touchEventHelper = new HorizontalTouchEventHelper(this);
+                break;
+            case Gravity.LEFT:
+            case Gravity.START:
+                layoutManager = new LinearLayoutManager(getContext(), VERTICAL, false);
+                touchEventHelper = new VerticalTouchEventHelper(this);
+                break;
+            case Gravity.RIGHT:
+            case Gravity.END:
+                layoutManager = new LinearLayoutManager(getContext(), VERTICAL, false);
+                touchEventHelper = new VerticalTouchEventHelper(this);
+                break;
+        }
+        super.setLayoutManager(layoutManager);
+    }
+
     public void setAdapter(final PianoAdapter adapter) {
         super.setAdapter(new Adapter() {
             @Override
             public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-                PianoKeyView view = new PianoKeyView(
-                        parent.getContext(),
-                        adapter.onCreateItemView(PianoView.this));
+                View content = adapter.onCreateItemView(PianoView.this);
+                PianoKeyView view = null;
+                switch (gravity) {
+                    case Gravity.TOP:
+                        view = new VerticalPianoKeyView(PianoView.this, content, VerticalPianoKeyView.DOWN);
+                        break;
+                    case Gravity.BOTTOM:
+                        view = new VerticalPianoKeyView(PianoView.this, content, VerticalPianoKeyView.UP);
+                        break;
+                    case Gravity.LEFT:
+                    case Gravity.START:
+                        view = new HorizontalPianoKeyView(PianoView.this, content, HorizontalPianoKeyView.LEFT);
+                        break;
+                    case Gravity.RIGHT:
+                    case Gravity.END:
+                        view = new HorizontalPianoKeyView(PianoView.this, content, HorizontalPianoKeyView.RIGHT);
+                        break;
+                }
                 return new ViewHolder(view) {
                 };
             }
@@ -91,53 +131,42 @@ public class PianoView extends RecyclerView {
         itemSpacing = spacing;
     }
 
+    public int getItemSpacing() {
+        return itemSpacing;
+    }
+
+    public void setOnItemSelectedListener(OnItemSelectedListener listener) {
+        this.listener = listener;
+    }
+
+    LinearLayoutManager getInnerLayoutManager() {
+        return layoutManager;
+    }
+
     @Override
     public boolean onTouchEvent(MotionEvent e) {
-        View touchView = findChildViewUnder(e.getX(), 0);
-        if (touchView != null) {
-            final int position = getChildAdapterPosition(touchView);
-            final int startPosition = Math.max(0, position - offsetCount);
-            final int endPosition = Math.min(layoutManager.getItemCount(), position + offsetCount);
-            for (int i = startPosition; i < endPosition; i++) {
-                View view = layoutManager.findViewByPosition(i);
-                if (view != null && view instanceof PianoKeyView) {
-                    int offset = Math.abs(i - position);
-                    float percent = Math.max(1 - (float) offset / offsetCount, showMiniPercent);
-                    ((PianoKeyView) view).show(percent);
-                }
-            }
-
-            if (e.getAction() == MotionEvent.ACTION_UP) {
-                final int firstVisiblePosition = layoutManager.findFirstVisibleItemPosition();
-                final int lastVisiblePosition = layoutManager.findLastVisibleItemPosition() + 1;
-                for (int i = firstVisiblePosition; i < lastVisiblePosition; i++) {
-                    if (i != position) {
-                        View view = layoutManager.findViewByPosition(i);
-                        if (view != null && view instanceof PianoKeyView) {
-                            ((PianoKeyView) view).show(showMiniPercent);
-                        }
-                    }
-                }
-
-                final int touchViewCenter = (int) touchView.getX() + touchView.getWidth() / 2;
-                final int deltaX =  touchViewCenter - getWidth() / 2;
-                scrollRunnable.setDistance(deltaX);
-                post(scrollRunnable);
-            }
-        }
+        touchEventHelper.onTouchEvent(e);
         return super.onTouchEvent(e);
     }
 
-    private class ScrollRunnable implements Runnable {
-        private int distance;
+    @Override
+    public void smoothScrollBy(int dx, int dy) {
+        scrollRunnable.setScrollBy(dx, dy);
+        post(scrollRunnable);
+    }
 
-        public void setDistance(int distance) {
-            this.distance = distance;
+    private class ScrollRunnable implements Runnable {
+        private int dx;
+        private int dy;
+
+        public void setScrollBy(int dx, int dy) {
+            this.dx = dx;
+            this.dy = dy;
         }
 
         @Override
         public void run() {
-            smoothScrollBy(distance, 0);
+            PianoView.super.smoothScrollBy(dx, dy);
         }
     }
 
@@ -161,47 +190,7 @@ public class PianoView extends RecyclerView {
         int getItemCount();
     }
 
-    private class PianoKeyView extends FrameLayout {
-        private float currentPercent = 0;
-        private View content;
-
-        public PianoKeyView(@NonNull Context context, View content) {
-            super(context);
-            addView(content);
-            this.content = content;
-            setPadding(itemSpacing / 2, 0, itemSpacing / 2, 0);
-            setClipToPadding(false);
-        }
-
-        public void show(float percent) {
-            if (currentPercent == percent) {
-                return;
-            }
-            currentPercent = percent;
-            ObjectAnimator animator =
-                    ObjectAnimator.ofFloat(
-                            content,
-                            "translationY",
-                            content.getTranslationY(),
-                            (1 - percent) * getHeight()
-                    );
-            animator.setDuration(500);
-            animator.setInterpolator(new OvershootInterpolator());
-            animator.start();
-        }
-
-        public void hide() {
-            if (currentPercent != translatePercent) {
-                currentPercent = translatePercent;
-                post(runnable);
-            }
-        }
-
-        private Runnable runnable = new Runnable() {
-            @Override
-            public void run() {
-                content.setTranslationY(getHeight() * translatePercent);
-            }
-        };
+    public interface OnItemSelectedListener {
+        void onItemSelected(PianoView view, View itemView, int position);
     }
 }
