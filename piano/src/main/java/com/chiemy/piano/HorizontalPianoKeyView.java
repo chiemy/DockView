@@ -54,10 +54,10 @@ import android.view.animation.OvershootInterpolator;
     }
 
     @Override
-    void onHide(float toPercent) {
+    void onHide(float transPercent) {
         if (type == LEFT) {
-            toPercent = -toPercent;
+            transPercent = -transPercent;
         }
-        content.setTranslationX(getWidth() * toPercent);
+        content.setTranslationX(getWidth() * transPercent);
     }
 }

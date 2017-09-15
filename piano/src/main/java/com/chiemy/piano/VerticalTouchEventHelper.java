@@ -6,8 +6,7 @@ import android.view.View;
 /**
  * Created by chiemy on 2017/9/15.
  */
-
-public class VerticalTouchEventHelper extends TouchEventHelper {
+ class VerticalTouchEventHelper extends TouchEventHelper {
 
     VerticalTouchEventHelper(PianoView pianoView) {
         super(pianoView);
@@ -19,7 +18,7 @@ public class VerticalTouchEventHelper extends TouchEventHelper {
     }
 
     @Override
-    void scrollToTouchViewCenter(View touchView) {
+    void scrollToViewCenter(View touchView) {
         final int touchViewCenter = (int) touchView.getY() + touchView.getHeight() / 2;
         final int deltaY =  touchViewCenter - pianoView.getHeight() / 2;
         pianoView.smoothScrollBy(0, deltaY);

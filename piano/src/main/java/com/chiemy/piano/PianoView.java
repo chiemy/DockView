@@ -9,6 +9,10 @@ import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
+
+import java.util.ArrayList;
+import java.util.List;
 
 
 /**
@@ -17,18 +21,23 @@ import android.view.ViewGroup;
  * Description:
  */
 
-public class PianoView extends RecyclerView {
+public class PianoView extends FrameLayout {
     private LinearLayoutManager layoutManager;
     private int itemSpacing;
     float showMiniPercent = 0.2f;
-    float translatePercent = 1 - showMiniPercent;
     int offsetCount = 5;
     private ScrollRunnable scrollRunnable = new ScrollRunnable();
     OnItemSelectedListener listener;
 
+    private List<RecyclerView.OnScrollListener> onScrollListeners;
+
     private TouchEventHelper touchEventHelper;
 
     private int gravity = Gravity.BOTTOM;
+
+    private RecyclerView recyclerView;
+
+    private int selectedPosition;
 
     public PianoView(Context context) {
         this(context, null);
@@ -44,7 +53,10 @@ public class PianoView extends RecyclerView {
     }
 
     public void init() {
-        addOnItemTouchListener(new OnItemTouchListener() {
+        onScrollListeners = new ArrayList<>(3);
+        recyclerView = new RecyclerView(getContext());
+        addView(recyclerView);
+        recyclerView.addOnItemTouchListener(new RecyclerView.OnItemTouchListener() {
             @Override
             public boolean onInterceptTouchEvent(RecyclerView rv, MotionEvent e) {
                 return true;
@@ -52,68 +64,114 @@ public class PianoView extends RecyclerView {
 
             @Override
             public void onTouchEvent(RecyclerView rv, MotionEvent e) {
+                if (touchEventHelper != null) {
+                    touchEventHelper.onTouchEvent(e);
+                }
             }
 
             @Override
             public void onRequestDisallowInterceptTouchEvent(boolean disallowIntercept) {
-
             }
         });
     }
 
     public void setGravity(int gravity) {
         this.gravity = gravity;
+        if (touchEventHelper != null) {
+            onScrollListeners.remove(touchEventHelper);
+        }
         switch (gravity) {
             case Gravity.TOP:
-                layoutManager = new LinearLayoutManager(getContext(), HORIZONTAL, false);
+                layoutManager = new LinearLayoutManager(
+                        getContext(),
+                        LinearLayoutManager.HORIZONTAL,
+                        false
+                );
                 touchEventHelper = new HorizontalTouchEventHelper(this);
                 break;
             case Gravity.BOTTOM:
-                layoutManager = new LinearLayoutManager(getContext(), HORIZONTAL, false);
+                layoutManager = new LinearLayoutManager(
+                        getContext(),
+                        LinearLayoutManager.HORIZONTAL,
+                        false
+                );
                 touchEventHelper = new HorizontalTouchEventHelper(this);
                 break;
             case Gravity.LEFT:
             case Gravity.START:
-                layoutManager = new LinearLayoutManager(getContext(), VERTICAL, false);
+                layoutManager = new LinearLayoutManager(
+                        getContext(),
+                        LinearLayoutManager.VERTICAL,
+                        false
+                );
                 touchEventHelper = new VerticalTouchEventHelper(this);
                 break;
             case Gravity.RIGHT:
             case Gravity.END:
-                layoutManager = new LinearLayoutManager(getContext(), VERTICAL, false);
+                layoutManager = new LinearLayoutManager(
+                        getContext(),
+                        LinearLayoutManager.VERTICAL,
+                        false
+                );
                 touchEventHelper = new VerticalTouchEventHelper(this);
                 break;
         }
-        super.setLayoutManager(layoutManager);
+        onScrollListeners.add(touchEventHelper);
+        recyclerView.setLayoutManager(layoutManager);
+        recyclerView.setOnScrollListener(scrollListener);
+        setSelection(selectedPosition);
     }
 
+    private RecyclerView.OnScrollListener scrollListener = new RecyclerView.OnScrollListener() {
+        @Override
+        public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+            super.onScrollStateChanged(recyclerView, newState);
+            for (RecyclerView.OnScrollListener l: onScrollListeners) {
+                l.onScrollStateChanged(recyclerView, newState);
+            }
+        }
+
+        @Override
+        public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+            super.onScrolled(recyclerView, dx, dy);
+            for (RecyclerView.OnScrollListener l: onScrollListeners) {
+                l.onScrolled(recyclerView, dx, dy);
+            }
+        }
+    };
+
     public void setAdapter(final PianoAdapter adapter) {
-        super.setAdapter(new Adapter() {
+        recyclerView.setAdapter(new RecyclerView.Adapter() {
             @Override
-            public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+            public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
                 View content = adapter.onCreateItemView(PianoView.this);
                 PianoKeyView view = null;
                 switch (gravity) {
                     case Gravity.TOP:
-                        view = new VerticalPianoKeyView(PianoView.this, content, VerticalPianoKeyView.DOWN);
+                        view = new VerticalPianoKeyView(PianoView.this, content,
+                                VerticalPianoKeyView.DOWN);
                         break;
                     case Gravity.BOTTOM:
-                        view = new VerticalPianoKeyView(PianoView.this, content, VerticalPianoKeyView.UP);
+                        view = new VerticalPianoKeyView(PianoView.this, content,
+                                VerticalPianoKeyView.UP);
                         break;
                     case Gravity.LEFT:
                     case Gravity.START:
-                        view = new HorizontalPianoKeyView(PianoView.this, content, HorizontalPianoKeyView.LEFT);
+                        view = new HorizontalPianoKeyView(PianoView.this, content,
+                                HorizontalPianoKeyView.LEFT);
                         break;
                     case Gravity.RIGHT:
                     case Gravity.END:
-                        view = new HorizontalPianoKeyView(PianoView.this, content, HorizontalPianoKeyView.RIGHT);
+                        view = new HorizontalPianoKeyView(PianoView.this, content,
+                                HorizontalPianoKeyView.RIGHT);
                         break;
                 }
-                return new ViewHolder(view) {
+                return new RecyclerView.ViewHolder(view) {
                 };
             }
 
             @Override
-            public void onBindViewHolder(ViewHolder holder, int position) {
+            public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
                 if (holder.itemView instanceof PianoKeyView) {
                     ((PianoKeyView) holder.itemView).hide();
                 }
@@ -139,20 +197,37 @@ public class PianoView extends RecyclerView {
         this.listener = listener;
     }
 
-    LinearLayoutManager getInnerLayoutManager() {
-        return layoutManager;
-    }
-
-    @Override
-    public boolean onTouchEvent(MotionEvent e) {
-        touchEventHelper.onTouchEvent(e);
-        return super.onTouchEvent(e);
-    }
-
-    @Override
     public void smoothScrollBy(int dx, int dy) {
         scrollRunnable.setScrollBy(dx, dy);
         post(scrollRunnable);
+    }
+
+    public void smoothScrollTo(int position) {
+        recyclerView.smoothScrollToPosition(position);
+    }
+
+    public void setSelection(int position) {
+        selectedPosition = position;
+        post(new Runnable() {
+            @Override
+            public void run() {
+                if (touchEventHelper != null) {
+                    touchEventHelper.performTouch(selectedPosition);
+                }
+            }
+        });
+    }
+
+    int getChildAdapterPosition(View view) {
+        return recyclerView.getChildAdapterPosition(view);
+    }
+
+    View findChildViewUnder(float x, float y) {
+        return recyclerView.findChildViewUnder(x, y);
+    }
+
+    LinearLayoutManager getInnerLayoutManager() {
+        return layoutManager;
     }
 
     private class ScrollRunnable implements Runnable {
@@ -166,20 +241,8 @@ public class PianoView extends RecyclerView {
 
         @Override
         public void run() {
-            PianoView.super.smoothScrollBy(dx, dy);
+            recyclerView.smoothScrollBy(dx, dy);
         }
-    }
-
-    @Deprecated
-    @Override
-    public void setAdapter(Adapter adapter) {
-        throw new RuntimeException("instead of setAdapter(PianoAdapter adapter)");
-    }
-
-    @Deprecated
-    @Override
-    public void setLayoutManager(LayoutManager layout) {
-        throw new RuntimeException("cannot call this method");
     }
 
     public interface PianoAdapter {

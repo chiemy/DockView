@@ -16,7 +16,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         PianoView pianoView = (PianoView) findViewById(R.id.pianoView);
         pianoView.setItemSpacing(20);
-        pianoView.setGravity(Gravity.BOTTOM);
+        pianoView.setGravity(Gravity.TOP);
         pianoView.setOnItemSelectedListener(new PianoView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(PianoView view, View itemView, int position) {

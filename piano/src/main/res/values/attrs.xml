@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="PianoView">
+        <attr name="peekPercent" format="float"/>
+        <attr name="peekSize" format="dimension"/>
+        <attr name="gravity" format="enum"/>
+    </declare-styleable>
+</resources>

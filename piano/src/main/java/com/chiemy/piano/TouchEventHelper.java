@@ -1,17 +1,19 @@
 package com.chiemy.piano;
 
 import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.view.MotionEvent;
 import android.view.View;
 
 /**
  * Created by chiemy on 2017/9/14.
  */
-abstract class TouchEventHelper {
+abstract class TouchEventHelper extends RecyclerView.OnScrollListener {
     PianoView pianoView;
     LinearLayoutManager layoutManager;
     int offsetCount;
     float miniPercent;
+    int selectedPosition = -1;
 
     TouchEventHelper(PianoView pianoView) {
         this.pianoView = pianoView;
@@ -24,12 +26,13 @@ abstract class TouchEventHelper {
         View touchView = findTouchView(e);
         if (touchView != null) {
             final int position = pianoView.getChildAdapterPosition(touchView);
+            selectedPosition = position;
             onShow(position);
 
             if (e.getAction() == MotionEvent.ACTION_UP) {
                 onHide(position);
 
-                scrollToTouchViewCenter(touchView);
+                scrollToViewCenter(touchView);
 
                 if (pianoView.listener != null) {
                     pianoView.listener.onItemSelected(pianoView, ((PianoKeyView) touchView).content, position);
@@ -65,8 +68,39 @@ abstract class TouchEventHelper {
         }
     }
 
+    @Override
+    public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+        super.onScrolled(recyclerView, dx, dy);
+    }
+
+    @Override
+    public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+        super.onScrollStateChanged(recyclerView, newState);
+        if (newState == RecyclerView.SCROLL_STATE_IDLE) {
+            performTouch(selectedPosition);
+        }
+    }
+
+    void performTouch(int position) {
+        selectedPosition = position;
+        int firstVisiblePosition = layoutManager.findFirstVisibleItemPosition();
+        int lastVisiblePosition = layoutManager.findLastVisibleItemPosition();
+        if (position >= firstVisiblePosition
+                && position <= lastVisiblePosition) {
+            View view = layoutManager.findViewByPosition(position);
+            if (view != null) {
+                scrollToViewCenter(view);
+                if (view instanceof PianoKeyView) {
+                    ((PianoKeyView) view).show(1);
+                }
+            }
+        } else {
+            pianoView.smoothScrollTo(position);
+        }
+    }
+
     abstract View findTouchView(MotionEvent e);
 
-    abstract void scrollToTouchViewCenter(View touchView);
+    abstract void scrollToViewCenter(View touchView);
 
 }
