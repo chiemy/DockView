@@ -1,6 +1,7 @@
 package com.chiemy.piano;
 
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.support.annotation.Nullable;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -22,7 +23,6 @@ import java.util.List;
  */
 
 public class PianoView extends FrameLayout {
-    private LinearLayoutManager layoutManager;
     private int itemSpacing;
     float showMiniPercent = 0.2f;
     int offsetCount = 5;
@@ -31,13 +31,15 @@ public class PianoView extends FrameLayout {
 
     private List<RecyclerView.OnScrollListener> onScrollListeners;
 
-    private TouchEventHelper touchEventHelper;
-
     private int gravity = Gravity.BOTTOM;
 
     private RecyclerView recyclerView;
 
     private int selectedPosition;
+
+    private PianoAdapter pianoAdapter;
+
+    private PianoViewLayoutManager pianoLayoutManager;
 
     public PianoView(Context context) {
         this(context, null);
@@ -49,12 +51,19 @@ public class PianoView extends FrameLayout {
 
     public PianoView(Context context, @Nullable AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
-        init();
+        init(attrs);
     }
 
-    public void init() {
+    public void init(AttributeSet attrs) {
+        if (attrs != null) {
+            TypedArray t = getContext().obtainStyledAttributes(attrs, R.styleable.PianoView);
+
+            t.recycle();
+        }
+
         onScrollListeners = new ArrayList<>(3);
         recyclerView = new RecyclerView(getContext());
+        recyclerView.setOnScrollListener(scrollListener);
         addView(recyclerView);
         recyclerView.addOnItemTouchListener(new RecyclerView.OnItemTouchListener() {
             @Override
@@ -64,8 +73,8 @@ public class PianoView extends FrameLayout {
 
             @Override
             public void onTouchEvent(RecyclerView rv, MotionEvent e) {
-                if (touchEventHelper != null) {
-                    touchEventHelper.onTouchEvent(e);
+                if (pianoLayoutManager != null) {
+                    pianoLayoutManager.onTouchEvent(e);
                 }
             }
 
@@ -77,56 +86,24 @@ public class PianoView extends FrameLayout {
 
     public void setGravity(int gravity) {
         this.gravity = gravity;
-        if (touchEventHelper != null) {
-            onScrollListeners.remove(touchEventHelper);
+        if (pianoLayoutManager != null) {
+            onScrollListeners.remove(pianoLayoutManager);
         }
-        switch (gravity) {
-            case Gravity.TOP:
-                layoutManager = new LinearLayoutManager(
-                        getContext(),
-                        LinearLayoutManager.HORIZONTAL,
-                        false
-                );
-                touchEventHelper = new HorizontalTouchEventHelper(this);
-                break;
-            case Gravity.BOTTOM:
-                layoutManager = new LinearLayoutManager(
-                        getContext(),
-                        LinearLayoutManager.HORIZONTAL,
-                        false
-                );
-                touchEventHelper = new HorizontalTouchEventHelper(this);
-                break;
-            case Gravity.LEFT:
-            case Gravity.START:
-                layoutManager = new LinearLayoutManager(
-                        getContext(),
-                        LinearLayoutManager.VERTICAL,
-                        false
-                );
-                touchEventHelper = new VerticalTouchEventHelper(this);
-                break;
-            case Gravity.RIGHT:
-            case Gravity.END:
-                layoutManager = new LinearLayoutManager(
-                        getContext(),
-                        LinearLayoutManager.VERTICAL,
-                        false
-                );
-                touchEventHelper = new VerticalTouchEventHelper(this);
-                break;
-        }
-        onScrollListeners.add(touchEventHelper);
-        recyclerView.setLayoutManager(layoutManager);
-        recyclerView.setOnScrollListener(scrollListener);
+        pianoLayoutManager = new PianoViewLayoutManager(this, gravity);
+        onScrollListeners.add(pianoLayoutManager);
+        recyclerView.setLayoutManager(pianoLayoutManager.getLayoutManager());
         setSelection(selectedPosition);
+    }
+
+    void setLayoutManager(PianoViewLayoutManager layoutManager) {
+        pianoLayoutManager = layoutManager;
     }
 
     private RecyclerView.OnScrollListener scrollListener = new RecyclerView.OnScrollListener() {
         @Override
         public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
             super.onScrollStateChanged(recyclerView, newState);
-            for (RecyclerView.OnScrollListener l: onScrollListeners) {
+            for (RecyclerView.OnScrollListener l : onScrollListeners) {
                 l.onScrollStateChanged(recyclerView, newState);
             }
         }
@@ -134,56 +111,52 @@ public class PianoView extends FrameLayout {
         @Override
         public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
             super.onScrolled(recyclerView, dx, dy);
-            for (RecyclerView.OnScrollListener l: onScrollListeners) {
+            for (RecyclerView.OnScrollListener l : onScrollListeners) {
                 l.onScrolled(recyclerView, dx, dy);
             }
         }
     };
 
     public void setAdapter(final PianoAdapter adapter) {
-        recyclerView.setAdapter(new RecyclerView.Adapter() {
-            @Override
-            public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-                View content = adapter.onCreateItemView(PianoView.this);
-                PianoKeyView view = null;
-                switch (gravity) {
-                    case Gravity.TOP:
-                        view = new VerticalPianoKeyView(PianoView.this, content,
-                                VerticalPianoKeyView.DOWN);
-                        break;
-                    case Gravity.BOTTOM:
-                        view = new VerticalPianoKeyView(PianoView.this, content,
-                                VerticalPianoKeyView.UP);
-                        break;
-                    case Gravity.LEFT:
-                    case Gravity.START:
-                        view = new HorizontalPianoKeyView(PianoView.this, content,
-                                HorizontalPianoKeyView.LEFT);
-                        break;
-                    case Gravity.RIGHT:
-                    case Gravity.END:
-                        view = new HorizontalPianoKeyView(PianoView.this, content,
-                                HorizontalPianoKeyView.RIGHT);
-                        break;
-                }
-                return new RecyclerView.ViewHolder(view) {
-                };
-            }
-
-            @Override
-            public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
-                if (holder.itemView instanceof PianoKeyView) {
-                    ((PianoKeyView) holder.itemView).hide();
-                }
-                adapter.onBindItemView(holder.itemView, position);
-            }
-
-            @Override
-            public int getItemCount() {
-                return adapter.getItemCount();
-            }
-        });
+        if (pianoAdapter != null) {
+            pianoAdapter.unregisterAdapterDataObserver(dataObserver);
+        }
+        pianoAdapter = adapter;
+        if (adapter != null) {
+            adapter.registerAdapterDataObserver(dataObserver);
+        }
+        recyclerView.setAdapter(innerAdapter);
     }
+
+    private AdapterDataObserver dataObserver = new AdapterDataObserver() {
+        @Override
+        public void onChanged() {
+            if (recyclerView.getAdapter() != null) {
+                recyclerView.getAdapter().notifyDataSetChanged();
+            }
+        }
+    };
+
+    private RecyclerView.Adapter innerAdapter = new RecyclerView.Adapter() {
+        @Override
+        public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+            View content = pianoAdapter.onCreateItemView(PianoView.this);
+            return new RecyclerView.ViewHolder(pianoLayoutManager.createPianoKeyView(content)) {};
+        }
+
+        @Override
+        public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
+            if (holder.itemView instanceof PianoKeyView) {
+                ((PianoKeyView) holder.itemView).hide();
+            }
+            pianoAdapter.onBindItemView(holder.itemView, position);
+        }
+
+        @Override
+        public int getItemCount() {
+            return pianoAdapter != null ? pianoAdapter.getItemCount() : 0;
+        }
+    };
 
     public void setItemSpacing(int spacing) {
         itemSpacing = spacing;
@@ -211,8 +184,8 @@ public class PianoView extends FrameLayout {
         post(new Runnable() {
             @Override
             public void run() {
-                if (touchEventHelper != null) {
-                    touchEventHelper.performTouch(selectedPosition);
+                if (pianoLayoutManager != null) {
+                    pianoLayoutManager.performTouch(selectedPosition);
                 }
             }
         });
@@ -227,7 +200,7 @@ public class PianoView extends FrameLayout {
     }
 
     LinearLayoutManager getInnerLayoutManager() {
-        return layoutManager;
+        return pianoLayoutManager.getLayoutManager();
     }
 
     private class ScrollRunnable implements Runnable {
@@ -245,13 +218,52 @@ public class PianoView extends FrameLayout {
         }
     }
 
-    public interface PianoAdapter {
-        View onCreateItemView(PianoView parent);
+    public static abstract class PianoAdapter {
+        private final List<AdapterDataObserver> dataObservers = new ArrayList<>(2);
 
-        void onBindItemView(View itemView, int position);
+        public abstract View onCreateItemView(PianoView parent);
 
-        int getItemCount();
+        public abstract void onBindItemView(View itemView, int position);
+
+        public abstract int getItemCount();
+
+        public void registerAdapterDataObserver(AdapterDataObserver observer) {
+            if (observer == null) {
+                throw new IllegalArgumentException("The observer is null.");
+            }
+            synchronized(dataObservers) {
+                if (dataObservers.contains(observer)) {
+                    throw new IllegalStateException("Observer " + observer + " is already registered.");
+                }
+                dataObservers.add(observer);
+            }
+        }
+
+        public void unregisterAdapterDataObserver(AdapterDataObserver observer) {
+            if (observer == null) {
+                throw new IllegalArgumentException("The observer is null.");
+            }
+            synchronized(dataObservers) {
+                int index = dataObservers.indexOf(observer);
+                if (index == -1) {
+                    throw new IllegalStateException("Observer " + observer + " was not registered.");
+                }
+                dataObservers.remove(index);
+            }
+        }
+
+        public void notifyDataSetChanged() {
+            for (AdapterDataObserver observer : dataObservers) {
+                observer.onChanged();
+            }
+        }
     }
+
+    public static abstract class AdapterDataObserver {
+        public void onChanged() {
+        }
+    }
+
 
     public interface OnItemSelectedListener {
         void onItemSelected(PianoView view, View itemView, int position);
