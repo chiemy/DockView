@@ -11,18 +11,14 @@ import android.view.View;
 abstract class TouchEventHelper extends RecyclerView.OnScrollListener {
     PianoView pianoView;
     LinearLayoutManager layoutManager;
-    int offsetCount;
-    float miniPercent;
     int selectedPosition = -1;
 
     TouchEventHelper(PianoView pianoView) {
         this.pianoView = pianoView;
         this.layoutManager = pianoView.getInnerLayoutManager();
-        offsetCount = pianoView.offsetCount;
-        miniPercent = pianoView.showMiniPercent;
     }
 
-    public void onTouchEvent(MotionEvent e) {
+    void onTouchEvent(MotionEvent e) {
         View touchView = findTouchView(e);
         if (touchView != null) {
             final int position = pianoView.getChildAdapterPosition(touchView);
@@ -42,14 +38,15 @@ abstract class TouchEventHelper extends RecyclerView.OnScrollListener {
     }
 
     void onShow(int touchViewPosition) {
-        final int startPosition = Math.max(0, touchViewPosition - offsetCount);
-        final int endPosition = Math.min(layoutManager.getItemCount(), touchViewPosition + offsetCount);
+        final int startPosition = Math.max(0, touchViewPosition - pianoView.popOffset);
+        final int endPosition = Math.min(layoutManager.getItemCount(), touchViewPosition + pianoView.popOffset);
 
         for (int i = startPosition; i <= endPosition; i++) {
             View view = layoutManager.findViewByPosition(i);
             if (view != null && view instanceof PianoKeyView) {
                 int offset = Math.abs(i - touchViewPosition);
-                float percent = Math.max(1 - (float) offset / offsetCount, miniPercent);
+                float percent = 1 - offset * pianoView.deltaHeightPercent;
+                percent = Math.max(percent, ((PianoKeyView) view).getPeekPercent());
                 ((PianoKeyView) view).show(percent);
             }
         }
@@ -62,7 +59,7 @@ abstract class TouchEventHelper extends RecyclerView.OnScrollListener {
             if (i != actionUpPosition) {
                 View view = layoutManager.findViewByPosition(i);
                 if (view != null && view instanceof PianoKeyView) {
-                    ((PianoKeyView) view).show(miniPercent);
+                    ((PianoKeyView) view).show(((PianoKeyView) view).getPeekPercent());
                 }
             }
         }

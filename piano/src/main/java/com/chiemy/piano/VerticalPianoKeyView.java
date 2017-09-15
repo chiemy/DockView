@@ -54,6 +54,14 @@ import android.view.animation.OvershootInterpolator;
     }
 
     @Override
+    float validPeekPercent(float peekPercent) {
+        if (peekPercent <= 0 && content.getHeight() > 0) {
+            peekPercent = pianoView.peekSize / content.getHeight();
+        }
+        return peekPercent;
+    }
+
+    @Override
     void onHide(float transPercent) {
         if (type == DOWN) {
             transPercent = -transPercent;

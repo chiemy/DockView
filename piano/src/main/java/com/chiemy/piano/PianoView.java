@@ -2,6 +2,7 @@ package com.chiemy.piano;
 
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.support.annotation.FloatRange;
 import android.support.annotation.Nullable;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -23,15 +24,36 @@ import java.util.List;
  */
 
 public class PianoView extends FrameLayout {
-    private int itemSpacing;
-    float showMiniPercent = 0.2f;
-    int offsetCount = 5;
-    private ScrollRunnable scrollRunnable = new ScrollRunnable();
+    private static final float DEF_MIN_PERCENT = 0.2f;
+    private static final float DEF_DELTA_H_PERCENT = 0.2f;
+    private static final int DEF_POP_OFFSET = 5;
+
+    /**
+     * 子视图露出部分占总高度的百分比
+     */
+    float peekPercent = DEF_MIN_PERCENT;
+    /**
+     * 子视图露出部分的尺寸
+     */
+    float peekSize;
+    /**
+     * 当手指点击某位置时，该位置左右两边需要弹起的视图的偏移量
+     */
+    int popOffset = DEF_POP_OFFSET;
     OnItemSelectedListener listener;
+    /**
+     * 相邻两个弹起的视图的高度差百分比
+     */
+    float deltaHeightPercent = DEF_DELTA_H_PERCENT;
+    /**
+     * item 间距
+     */
+    private int itemSpacing;
+    private ScrollRunnable scrollRunnable = new ScrollRunnable();
 
     private List<RecyclerView.OnScrollListener> onScrollListeners;
 
-    private int gravity = Gravity.BOTTOM;
+    private int gravity = Gravity.NO_GRAVITY;
 
     private RecyclerView recyclerView;
 
@@ -57,7 +79,19 @@ public class PianoView extends FrameLayout {
     public void init(AttributeSet attrs) {
         if (attrs != null) {
             TypedArray t = getContext().obtainStyledAttributes(attrs, R.styleable.PianoView);
-
+            peekPercent = t.getFloat(R.styleable.PianoView_peekPercent, 0);
+            peekSize = t.getDimensionPixelSize(R.styleable.PianoView_peekSize, 0);
+            // percent 优先
+            if (peekPercent > 0) {
+                peekSize = 0;
+            } else if (peekSize <= 0){
+                peekPercent = DEF_MIN_PERCENT;
+            }
+            gravity = t.getInt(R.styleable.PianoView_gravity, Gravity.NO_GRAVITY);
+            float deltaHeightPercent =
+                    t.getFloat(R.styleable.PianoView_deltaHeightPercent, DEF_DELTA_H_PERCENT);
+            setDeltaHeightPercent(deltaHeightPercent);
+            popOffset = t.getInt(R.styleable.PianoView_popOffset, DEF_POP_OFFSET);
             t.recycle();
         }
 
@@ -82,6 +116,9 @@ public class PianoView extends FrameLayout {
             public void onRequestDisallowInterceptTouchEvent(boolean disallowIntercept) {
             }
         });
+        if (gravity != Gravity.NO_GRAVITY) {
+            setGravity(gravity);
+        }
     }
 
     public void setGravity(int gravity) {
@@ -118,6 +155,9 @@ public class PianoView extends FrameLayout {
     };
 
     public void setAdapter(final PianoAdapter adapter) {
+        if (gravity == Gravity.NO_GRAVITY) {
+            throw new RuntimeException("should call setGravity before this method");
+        }
         if (pianoAdapter != null) {
             pianoAdapter.unregisterAdapterDataObserver(dataObserver);
         }
@@ -141,7 +181,8 @@ public class PianoView extends FrameLayout {
         @Override
         public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
             View content = pianoAdapter.onCreateItemView(PianoView.this);
-            return new RecyclerView.ViewHolder(pianoLayoutManager.createPianoKeyView(content)) {};
+            return new RecyclerView.ViewHolder(pianoLayoutManager.createPianoKeyView(content)) {
+            };
         }
 
         @Override
@@ -191,6 +232,27 @@ public class PianoView extends FrameLayout {
         });
     }
 
+    public void setPeekPercent(float peekPercent) {
+        this.peekPercent = peekPercent;
+        if (pianoAdapter != null) {
+            pianoAdapter.notifyDataSetChanged();
+        }
+    }
+
+    public void setPeekSize(float peekSize) {
+        this.peekSize = peekSize;
+        if (peekSize > 0) {
+            peekPercent = 0;
+        }
+        if (pianoAdapter != null) {
+            pianoAdapter.notifyDataSetChanged();
+        }
+    }
+
+    public void setDeltaHeightPercent(@FloatRange(from = 0, to = 1) float deltaHeghtPercent) {
+        this.deltaHeightPercent = Math.min(Math.max(0, deltaHeightPercent), 1);
+    }
+
     int getChildAdapterPosition(View view) {
         return recyclerView.getChildAdapterPosition(view);
     }
@@ -231,9 +293,10 @@ public class PianoView extends FrameLayout {
             if (observer == null) {
                 throw new IllegalArgumentException("The observer is null.");
             }
-            synchronized(dataObservers) {
+            synchronized (dataObservers) {
                 if (dataObservers.contains(observer)) {
-                    throw new IllegalStateException("Observer " + observer + " is already registered.");
+                    throw new IllegalStateException("Observer " + observer + " is already " +
+                            "registered.");
                 }
                 dataObservers.add(observer);
             }
@@ -243,10 +306,11 @@ public class PianoView extends FrameLayout {
             if (observer == null) {
                 throw new IllegalArgumentException("The observer is null.");
             }
-            synchronized(dataObservers) {
+            synchronized (dataObservers) {
                 int index = dataObservers.indexOf(observer);
                 if (index == -1) {
-                    throw new IllegalStateException("Observer " + observer + " was not registered.");
+                    throw new IllegalStateException("Observer " + observer + " was not registered" +
+                            ".");
                 }
                 dataObservers.remove(index);
             }

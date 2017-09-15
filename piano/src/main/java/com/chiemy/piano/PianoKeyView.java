@@ -10,14 +10,15 @@ import android.widget.FrameLayout;
  */
 abstract class PianoKeyView extends FrameLayout implements Runnable {
     private float currentPercent = 0;
-    private float miniPercent;
+    private float peekPercent;
+    PianoView pianoView;
     View content;
 
     PianoKeyView(PianoView view, View content) {
         super(view.getContext());
+        pianoView = view;
         addView(content);
         this.content = content;
-        miniPercent = view.showMiniPercent;
         setClipToPadding(false);
     }
 
@@ -31,15 +32,24 @@ abstract class PianoKeyView extends FrameLayout implements Runnable {
     }
 
     void hide() {
-        if (currentPercent != miniPercent) {
-            currentPercent = miniPercent;
-            post(this);
-        }
+        post(this);
+    }
+
+    float validPeekPercent(float peekPercent) {
+        return peekPercent <= 0 ? 0.2f : peekPercent;
+    }
+
+    float getPeekPercent() {
+        return validPeekPercent(pianoView.peekPercent);
     }
 
     @Override
     public void run() {
-        onHide(1 - miniPercent);
+        peekPercent = validPeekPercent(pianoView.peekPercent);
+        if (currentPercent != peekPercent) {
+            currentPercent = peekPercent;
+            onHide(1 - peekPercent);
+        }
     }
 
     @NonNull

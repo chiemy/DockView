@@ -3,6 +3,8 @@
     <declare-styleable name="PianoView">
         <attr name="peekPercent" format="float"/>
         <attr name="peekSize" format="dimension"/>
+        <attr name="deltaHeightPercent" format="float"/>
+        <attr name="popOffset" format="integer"/>
         <attr name="gravity">
             <flag name="top" value="0x30" />
             <flag name="bottom" value="0x50" />
