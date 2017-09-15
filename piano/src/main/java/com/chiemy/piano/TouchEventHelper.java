@@ -9,9 +9,12 @@ import android.view.View;
  * Created by chiemy on 2017/9/14.
  */
 abstract class TouchEventHelper extends RecyclerView.OnScrollListener {
+    private static final String TAG = "TouchEventHelper";
+
     PianoView pianoView;
     LinearLayoutManager layoutManager;
     int selectedPosition = -1;
+    private int wantPosition = -1;
 
     TouchEventHelper(PianoView pianoView) {
         this.pianoView = pianoView;
@@ -22,16 +25,16 @@ abstract class TouchEventHelper extends RecyclerView.OnScrollListener {
         View touchView = findTouchView(e);
         if (touchView != null) {
             final int position = pianoView.getChildAdapterPosition(touchView);
-            selectedPosition = position;
             onShow(position);
-
             if (e.getAction() == MotionEvent.ACTION_UP) {
+                selectedPosition = position;
+                wantPosition = -1;
                 onHide(position);
 
                 scrollToViewCenter(touchView);
 
-                if (pianoView.listener != null) {
-                    pianoView.listener.onItemSelected(pianoView, ((PianoKeyView) touchView).content, position);
+                if (pianoView != null) {
+                    pianoView.onItemSelected((PianoKeyView) touchView, position);
                 }
             }
         }
@@ -74,21 +77,34 @@ abstract class TouchEventHelper extends RecyclerView.OnScrollListener {
     public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
         super.onScrollStateChanged(recyclerView, newState);
         if (newState == RecyclerView.SCROLL_STATE_IDLE) {
-            performTouch(selectedPosition);
+            performTouch(wantPosition);
         }
     }
 
+
     void performTouch(int position) {
-        selectedPosition = position;
+        if (position < 0) {
+            return;
+        }
+        if (selectedPosition == position) {
+            return;
+        }
+        wantPosition = position;
+
         int firstVisiblePosition = layoutManager.findFirstVisibleItemPosition();
         int lastVisiblePosition = layoutManager.findLastVisibleItemPosition();
         if (position >= firstVisiblePosition
                 && position <= lastVisiblePosition) {
             View view = layoutManager.findViewByPosition(position);
-            if (view != null) {
+            if (view != null
+                    && view instanceof PianoKeyView
+                    && ((PianoKeyView) view).getCurrentPercent() != 1) {
+                selectedPosition = wantPosition;
+                wantPosition = -1;
+                ((PianoKeyView) view).show(1);
                 scrollToViewCenter(view);
-                if (view instanceof PianoKeyView) {
-                    ((PianoKeyView) view).show(1);
+                if (pianoView != null) {
+                    pianoView.onItemSelected((PianoKeyView) view, position);
                 }
             }
         } else {

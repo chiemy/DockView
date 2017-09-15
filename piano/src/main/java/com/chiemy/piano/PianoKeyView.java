@@ -43,6 +43,10 @@ abstract class PianoKeyView extends FrameLayout implements Runnable {
         return validPeekPercent(pianoView.peekPercent);
     }
 
+    public float getCurrentPercent() {
+        return currentPercent;
+    }
+
     @Override
     public void run() {
         peekPercent = validPeekPercent(pianoView.peekPercent);

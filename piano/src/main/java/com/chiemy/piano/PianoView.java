@@ -232,6 +232,10 @@ public class PianoView extends FrameLayout {
         });
     }
 
+    public int getSelectedPosition() {
+        return selectedPosition;
+    }
+
     public void setPeekPercent(float peekPercent) {
         this.peekPercent = peekPercent;
         if (pianoAdapter != null) {
@@ -263,6 +267,13 @@ public class PianoView extends FrameLayout {
 
     LinearLayoutManager getInnerLayoutManager() {
         return pianoLayoutManager.getLayoutManager();
+    }
+
+    void onItemSelected(PianoKeyView view, int position) {
+        selectedPosition = position;
+        if (listener != null) {
+            listener.onItemSelected(this, view.content, position);
+        }
     }
 
     private class ScrollRunnable implements Runnable {

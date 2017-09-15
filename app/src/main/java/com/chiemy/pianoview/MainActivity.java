@@ -24,7 +24,7 @@ public class MainActivity extends AppCompatActivity {
         pianoView.setAdapter(new PianoView.PianoAdapter() {
             @Override
             public View onCreateItemView(PianoView parent) {
-                return LayoutInflater.from(parent.getContext()).inflate(R.layout.item_piano,
+                return LayoutInflater.from(parent.getContext()).inflate(R.layout.item_bottom,
                         parent, false);
             }
 

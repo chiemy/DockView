@@ -14,4 +14,14 @@
             <flag name="end" value="0x00800005" />
         </attr>
     </declare-styleable>
+
+    <declare-styleable name="PianoMenuView">
+        <attr name="content_layout" format="reference"/>
+        <attr name="orientation">
+            <flag name="left_to_right" value="0"/>
+            <flag name="right_to_left" value="1"/>
+            <flag name="top_to_bottom" value="2"/>
+            <flag name="bottom_to_top" value="3"/>
+        </attr>
+    </declare-styleable>
 </resources>
