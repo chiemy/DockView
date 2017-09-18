@@ -1,10 +1,10 @@
 package com.chiemy.piano;
 
-import android.animation.Animator;
-import android.animation.ObjectAnimator;
+import android.os.Build;
 import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.view.View;
+import android.view.ViewPropertyAnimator;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.OvershootInterpolator;
 
@@ -30,20 +30,19 @@ import android.view.animation.OvershootInterpolator;
 
     @NonNull
     @Override
-    Animator buildAnimation(float percent, boolean expand) {
+    ViewPropertyAnimator buildAnimation(float percent, boolean expand) {
         float endValue;
         if (type == UP) {
             endValue =  (1 - percent) * getHeight();
         } else {
             endValue =  (percent - 1) * getHeight();
         }
-        ObjectAnimator animator =
-                ObjectAnimator.ofFloat(
-                        content,
-                        "translationY",
-                        content.getTranslationY(),
-                        endValue
-                );
+        ViewPropertyAnimator animator = content
+                .animate()
+                .translationY(endValue);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+            animator.withLayer();
+        }
         if (!expand) {
             animator.setInterpolator(new OvershootInterpolator());
         } else {

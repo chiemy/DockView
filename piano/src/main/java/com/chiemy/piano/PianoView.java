@@ -24,7 +24,7 @@ import java.util.List;
  */
 
 public class PianoView extends FrameLayout {
-    private static final float DEF_MIN_PERCENT = 0.2f;
+    static final float DEF_MIN_PERCENT = 0.2f;
     private static final float DEF_DELTA_H_PERCENT = 0.2f;
     private static final int DEF_POP_OFFSET = 5;
 

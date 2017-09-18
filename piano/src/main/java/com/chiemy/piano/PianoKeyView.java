@@ -1,8 +1,8 @@
 package com.chiemy.piano;
 
-import android.animation.Animator;
 import android.support.annotation.NonNull;
 import android.view.View;
+import android.view.ViewPropertyAnimator;
 import android.widget.FrameLayout;
 
 /**
@@ -35,12 +35,19 @@ abstract class PianoKeyView extends FrameLayout implements Runnable {
         post(this);
     }
 
-    float validPeekPercent(float peekPercent) {
-        return peekPercent <= 0 ? 0.2f : peekPercent;
+    abstract float validPeekPercent(float peekPercent);
+
+    private float getValidPeekPercent() {
+        float peekPercent = validPeekPercent(pianoView.peekPercent);
+        if (peekPercent <= 0) {
+            peekPercent = PianoView.DEF_MIN_PERCENT;
+        }
+        return peekPercent;
     }
 
+
     float getPeekPercent() {
-        return validPeekPercent(pianoView.peekPercent);
+        return getValidPeekPercent();
     }
 
     public float getCurrentPercent() {
@@ -49,7 +56,7 @@ abstract class PianoKeyView extends FrameLayout implements Runnable {
 
     @Override
     public void run() {
-        peekPercent = validPeekPercent(pianoView.peekPercent);
+        peekPercent = getValidPeekPercent();
         if (currentPercent != peekPercent) {
             currentPercent = peekPercent;
             onHide(1 - peekPercent);
@@ -57,7 +64,7 @@ abstract class PianoKeyView extends FrameLayout implements Runnable {
     }
 
     @NonNull
-    abstract Animator buildAnimation(float percent, boolean expand);
+    abstract ViewPropertyAnimator buildAnimation(float percent, boolean expand);
 
     abstract void onHide(float transPercent);
 
