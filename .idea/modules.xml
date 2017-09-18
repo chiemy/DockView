@@ -5,6 +5,7 @@
       <module fileurl="file://$PROJECT_DIR$/PianoView.iml" filepath="$PROJECT_DIR$/PianoView.iml" />
       <module fileurl="file://$PROJECT_DIR$/RVPianoView.iml" filepath="$PROJECT_DIR$/RVPianoView.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/dock/dock.iml" filepath="$PROJECT_DIR$/dock/dock.iml" />
       <module fileurl="file://$PROJECT_DIR$/piano/piano.iml" filepath="$PROJECT_DIR$/piano/piano.iml" />
       <module fileurl="file://$PROJECT_DIR$/piano/piano.iml" filepath="$PROJECT_DIR$/piano/piano.iml" />
     </modules>
