@@ -46,9 +46,9 @@ public class PianoMenuActivity extends AppCompatActivity implements PianoView.On
 
     /**
      * Should call before super.onCreate
-     * @param orientation
+     * @param orientation {@link com.chiemy.piano.PianoMenuView.MenuOrientation}
      */
-    public void setOrientation(@PianoMenuView.MenuOrientation int orientation) {
+    public void setOrientation(int orientation) {
         this.orientation = orientation;
     }
 }

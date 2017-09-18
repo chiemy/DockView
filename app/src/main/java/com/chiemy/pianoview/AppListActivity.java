@@ -1,5 +1,7 @@
 package com.chiemy.pianoview;
 
+import android.content.Context;
+import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -25,13 +27,25 @@ import java.util.List;
  */
 
 public class AppListActivity extends PianoMenuActivity {
+    private static final String EXTRA_ORIENTATION = "orientation";
+
     private List<PackageInfo> appList;
     private ImageView logoIv;
     private TextView appInfoTv;
+    private int orientation;
+    private int itemLayoutResId;
+
+    public static void start(Context context, int orientation) {
+        Intent intent = new Intent(context, AppListActivity.class);
+        intent.putExtra(EXTRA_ORIENTATION, orientation);
+        context.startActivity(intent);
+    }
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
-        setOrientation(PianoMenuView.BOTTOM_TO_TOP);
+        orientation = getIntent().getIntExtra(EXTRA_ORIENTATION, PianoMenuView.BOTTOM_TO_TOP);
+        itemLayoutResId = getItemLayoutResId();
+        setOrientation(orientation);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_piano_menu);
         logoIv = (ImageView) findViewById(R.id.iv_logo);
@@ -41,8 +55,7 @@ public class AppListActivity extends PianoMenuActivity {
         setMenuAdapter(new PianoView.PianoAdapter() {
             @Override
             public View onCreateItemView(PianoView parent) {
-                return LayoutInflater.from(parent.getContext()).inflate(R.layout.item_bottom, parent,
-                        false);
+                return LayoutInflater.from(parent.getContext()).inflate(itemLayoutResId, parent, false);
             }
 
             @Override
@@ -57,6 +70,25 @@ public class AppListActivity extends PianoMenuActivity {
                 return appList.size();
             }
         });
+    }
+
+    private int getItemLayoutResId() {
+        int layoutResId = R.layout.item_bottom;
+        switch (orientation) {
+            case PianoMenuView.BOTTOM_TO_TOP:
+                layoutResId = R.layout.item_bottom;
+                break;
+            case PianoMenuView.TOP_TO_BOTTOM:
+                layoutResId = R.layout.item_top;
+                break;
+            case PianoMenuView.LEFT_TO_RIGHT:
+                layoutResId = R.layout.item_left;
+                break;
+            case PianoMenuView.RIGHT_TO_LEFT:
+                layoutResId = R.layout.item_right;
+                break;
+        }
+        return layoutResId;
     }
 
     @Override
