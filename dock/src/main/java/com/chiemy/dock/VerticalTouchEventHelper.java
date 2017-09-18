@@ -14,7 +14,9 @@ import android.view.View;
 
     @Override
     View findTouchView(MotionEvent e) {
-        return pianoView.findChildViewUnder(0, e.getY());
+        float y = Math.min(pianoView.getHeight(), e.getY());
+        y = Math.max(0, y);
+        return pianoView.findChildViewUnder(0, y);
     }
 
     @Override

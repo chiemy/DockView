@@ -2,6 +2,7 @@ package com.chiemy.dock;
 
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -22,6 +23,7 @@ abstract class TouchEventHelper extends RecyclerView.OnScrollListener {
     }
 
     void onTouchEvent(MotionEvent e) {
+        Log.d(TAG, "onTouchEvent: " + e.getAction());
         View touchView = findTouchView(e);
         if (touchView != null) {
             final int position = pianoView.getChildAdapterPosition(touchView);
