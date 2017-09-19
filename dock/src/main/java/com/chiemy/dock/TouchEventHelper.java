@@ -2,7 +2,6 @@ package com.chiemy.dock;
 
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -16,6 +15,7 @@ abstract class TouchEventHelper extends RecyclerView.OnScrollListener {
     LinearLayoutManager layoutManager;
     int selectedPosition = -1;
     private int wantPosition = -1;
+    private int touchPosition = -1;
 
     TouchEventHelper(DockView pianoView) {
         this.pianoView = pianoView;
@@ -23,29 +23,40 @@ abstract class TouchEventHelper extends RecyclerView.OnScrollListener {
     }
 
     void onTouchEvent(MotionEvent e) {
-        Log.d(TAG, "onTouchEvent: " + e.getAction());
         View touchView = findTouchView(e);
         if (touchView != null) {
-            final int position = pianoView.getChildAdapterPosition(touchView);
-            onShow(position);
+            int position = pianoView.getChildAdapterPosition(touchView);
+            boolean change = position != touchPosition;
+            touchPosition = position;
+            if (change) {
+                popup(position);
+            }
             if (e.getAction() == MotionEvent.ACTION_UP) {
                 selectedPosition = position;
+                touchPosition = -1;
                 wantPosition = -1;
-                onHide(position);
+                popDown(position);
 
                 scrollToViewCenter(touchView);
 
                 if (pianoView != null) {
                     pianoView.onItemSelected((DockItemView) touchView, position);
                 }
+
             }
         }
     }
 
-    void onShow(int touchViewPosition) {
+    private void popup(int touchViewPosition) {
         final int startPosition = Math.max(0, touchViewPosition - pianoView.popOffset);
         final int endPosition = Math.min(layoutManager.getItemCount(), touchViewPosition + pianoView.popOffset);
-
+        if (selectedPosition < startPosition
+                || selectedPosition > endPosition) {
+            View selectedView = layoutManager.findViewByPosition(selectedPosition);
+            if (selectedView != null) {
+                ((DockItemView) selectedView).show(((DockItemView) selectedView).getPeekPercent());
+            }
+        }
         for (int i = startPosition; i <= endPosition; i++) {
             View view = layoutManager.findViewByPosition(i);
             if (view != null && view instanceof DockItemView) {
@@ -57,7 +68,7 @@ abstract class TouchEventHelper extends RecyclerView.OnScrollListener {
         }
     }
 
-    void onHide(int actionUpPosition) {
+    private void popDown(int actionUpPosition) {
         final int firstVisiblePosition = layoutManager.findFirstVisibleItemPosition();
         final int lastVisiblePosition = layoutManager.findLastVisibleItemPosition();
         for (int i = firstVisiblePosition; i <= lastVisiblePosition; i++) {

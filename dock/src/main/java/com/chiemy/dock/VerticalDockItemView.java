@@ -12,7 +12,13 @@ import android.view.animation.OvershootInterpolator;
  * Created by chiemy on 2017/9/14.
  */
  class VerticalDockItemView extends DockItemView {
+    /**
+     * Popup to up
+     */
     static final int UP = 0;
+    /**
+     * Popup to down
+     */
     static final int DOWN = 1;
 
     @IntDef({UP, DOWN})

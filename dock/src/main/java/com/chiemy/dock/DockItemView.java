@@ -32,7 +32,11 @@ abstract class DockItemView extends FrameLayout implements Runnable {
     }
 
     void hide() {
-        post(this);
+        peekPercent = getValidPeekPercent();
+        if (currentPercent != peekPercent) {
+            currentPercent = peekPercent;
+            post(this);
+        }
     }
 
     abstract float validPeekPercent(float peekPercent);
@@ -56,11 +60,7 @@ abstract class DockItemView extends FrameLayout implements Runnable {
 
     @Override
     public void run() {
-        peekPercent = getValidPeekPercent();
-        if (currentPercent != peekPercent) {
-            currentPercent = peekPercent;
-            onHide(1 - peekPercent);
-        }
+        onHide(1 - peekPercent);
     }
 
     @NonNull
